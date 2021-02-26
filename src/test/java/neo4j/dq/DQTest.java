@@ -21,6 +21,7 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.rule.DbmsRule;
 import org.neo4j.test.rule.ImpermanentDbmsRule;
 
+import static java.util.Collections.singletonList;
 import static org.junit.Assert.*;
 
 public class DQTest {
@@ -30,11 +31,9 @@ public class DQTest {
             "(c:Node{name:'C'}), " +
             "(a)-[:MY_NON_DEFAULT_IMPACT_RELATION]->(b), " +
             "(a)-[:WHATEVER]->(c) " ;
-
     @Rule
     public DbmsRule db = new ImpermanentDbmsRule()
-            .withSetting(GraphDatabaseSettings.log_queries, GraphDatabaseSettings.LogQueryLevel.VERBOSE);
-
+            .withSetting(GraphDatabaseSettings.procedure_unrestricted, singletonList("neo4j.dq.*"));
 
     @Before
     public void setUp() throws Exception {
