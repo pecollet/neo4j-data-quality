@@ -1,5 +1,6 @@
 # neo4j.data.quality
 stored procedures to create & manage data quality flags.
+![DQ data model](docs/img/model.jpg)
 
 ## Installation
 * Copy the jar into Neo4j's "plugins" directory : `$NEO4J_HOME/plugins`
@@ -42,7 +43,7 @@ Creates a "data quality flag" node for the given data node.
 ### examples
 **Flag all `Node` nodes that are missing a "state" property :**
 ```
-MATCH (n:Node) WHERE NOT EXISTS n.state 
+MATCH (n:Node) WHERE NOT EXISTS(n.state)
 CALL neo4j.dq.createFlag(n, 'MissingState', 'nodes of type Node should have a state property') yield flag
 RETURN flag
 ```
@@ -61,7 +62,13 @@ Attach a data node to a flag with a `HAS_ATTACHMENT` relationship.
 * Creates a relationship `(_flag_)-[:HAS_ATTACHMENT]->(_node_)`, with `description=_description_` as property of the relationship.
 * Returns the `HAS_ATTACHMENT` relationship created.
 ### examples
-
+```
+MATCH (p:Person)-[r:ACTED_IN]->(m:Movie)
+WHERE NOT EXISTS(r.roles)
+CALL neo4j.dq.createFlag(p, 'MissingRoles', 'Missing : ' + p.name+ ' in ' +m.title) yield flag
+CALL neo4j.dq.attachToFlag(flag, m) YIELD attachment
+RETURN flag, attachment
+```
 
 ## Procedure **neo4j.dq.deleteFlags**
 Deletes flag nodes. 
@@ -74,7 +81,6 @@ Deletes flag nodes.
 ### output
 * Performs a DETACH DELETE of the provided flag nodes, batched in several transactions.
 * Returns the number of deleted flags.
-### examples
 
 
 ## Procedure **neo4j.dq.deleteNodeFlags**
@@ -88,7 +94,6 @@ Deletes all flag nodes linked to a data node.
 ### output
 * Performs a DETACH DELETE of the flag nodes, batched in several transactions.
 * Returns the number of deleted flags.
-### examples
 
 
 ## Procedure **neo4j.dq.listFlags**
@@ -100,7 +105,6 @@ Lists flag nodes.
 * _filter_ (String) : flag class for filtering results. Optional (defaults to returning all flags).
 ### output
 Returns the flag nodes.
-### examples
 
 
 ## Procedure **neo4j.dq.listClasses**
@@ -112,7 +116,6 @@ List DQ classes.
 * _filter_ (String) : flag class for filtering results. Optional (defaults to returning all classes).
 ### output
 Returns `DQ_Class` nodes.
-### examples
 
 
 ## Procedure **neo4j.dq.createClass**
@@ -127,7 +130,6 @@ Creates a new DQ class.
 * _description_ (String) : property of the class node. Optional (defaults to "").
 ### output
 Returns the created class node.
-### examples
 
 
 ## Procedure **neo4j.dq.deleteClass**
@@ -142,7 +144,6 @@ Deletes a class and all its flags.
 * Any child class is kept, and re-attached to the root class.
 * Deletes the class node.  
 * Returns the number of deleted flags.
-### examples
 
 
 ## Procedure **neo4j.dq.statistics**
@@ -154,5 +155,4 @@ Computes statistics about DQ flags in the graph.
 * _filter_ (String) : class name for which to compute statistics.
 ### output
 Returns the counts of number of direct/indirect/total children flags for the class
-### examples
 
