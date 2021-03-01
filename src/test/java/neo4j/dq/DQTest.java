@@ -192,6 +192,36 @@ public class DQTest {
     }
 
     @Test
+    public void testDeleteClass_hierarchy() throws Exception {
+        String CREATE_CLASSES =  "CALL neo4j.dq.createClass('SomeClass', 'ParentClass', 100, 'description') yield dqClass RETURN dqClass";
+        db.executeTransactionally(CREATE_CLASSES);
+
+        String CREATE_CHILD_FLAGS = "MATCH (p:Person) " +
+                "CALL neo4j.dq.createFlag(p, 'ChildClass', 'desc') yield flag RETURN flag";
+        db.executeTransactionally(CREATE_CHILD_FLAGS);
+        String CREATE_PARENT_FLAGS = "MATCH (m:Movie) " +
+                "CALL neo4j.dq.createFlag(m, 'ParentClass', 'desc') yield flag RETURN flag";
+        db.executeTransactionally(CREATE_PARENT_FLAGS);
+
+        String DELETE_CLASS =  "CALL neo4j.dq.deleteClass('ParentClass') yield value RETURN value";
+        db.executeTransactionally(DELETE_CLASS);
+
+        //check the correct flags are deleted (and only them)
+        TestUtil.testResult(db, "MATCH (flag:ParentClass) RETURN flag" , null,
+                r -> assertFalse("Expected no parent flag results", r.hasNext()) );
+        TestUtil.testResult(db, "MATCH (flag:ChildClass) RETURN flag" , null,
+                r -> assertTrue("Expected children flag results", r.hasNext()) );
+
+        //check the class hierarchy is correct
+        TestUtil.testResult(db, "MATCH (c:DQ_Class{class:'ParentClass'}) RETURN c" , null,
+                r -> assertFalse("Expected no parent class results", r.hasNext()) );
+        TestUtil.testResult(db, "MATCH (c:DQ_Class{class:'ChildClass'}) RETURN c" , null,
+                r -> assertTrue("Expected child class results", r.hasNext()) );
+        TestUtil.testResult(db, "MATCH (c:DQ_Class{class:'ChildClass'})-[:HAS_DQ_CLASS]->(root:DQ_Class{class:'all'}) RETURN c" , null,
+                r -> assertTrue("Expected child class re-attached to root", r.hasNext()) );
+    }
+
+    @Test
     public void testStatistics() throws Exception {
         String CREATE_CLASS =  "CALL neo4j.dq.createClass('SomeClass', 'ParentClass', 100, 'description') yield dqClass RETURN dqClass";
         db.executeTransactionally(CREATE_CLASS);
@@ -212,6 +242,11 @@ public class DQTest {
         );
     }
 
+    @Test
+    public void testStatistics_empty() throws Exception {
+        TestUtil.testResult(db, "call neo4j.dq.statistics" , null,
+                r -> assertFalse("Expected no parent flag results", r.hasNext()) );
+    }
 
     private void assertFlagResult(Result r, String expectedDescription) {
         Node flag;
@@ -283,6 +318,7 @@ public class DQTest {
         }
     }
     private void assertStatsResult(Result r, String expectedClass, Long[] expectedStats) {
+        if (!r.hasNext()) assert(false);
         Map res = r.next();
         assertEquals("expected dqClass column", expectedClass, res.get("dqClass")) ;
         assertEquals("expected directFlagCount column", expectedStats[0], res.get("directFlagCount")) ;

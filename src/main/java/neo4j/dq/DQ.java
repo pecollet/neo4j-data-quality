@@ -48,7 +48,7 @@ public class DQ  {
             ) {
 
         Node parent = findOrCreateClassNode(flagLabel);
-        if (parent == null ) return Stream.of(null);
+        if (parent == null ) return Stream.empty();
 
         Node flag= tx.createNode(Label.label(flagLabel), DQ_FLAG);
         flag.createRelationshipTo(parent, HAS_DQ_CLASS);
@@ -156,19 +156,26 @@ public class DQ  {
             log.error("Found multiple 'DQ_Class' nodes with class='"+dqClass+"'.");
             throw mfe;
         }
-        if (classNode == null) return Stream.of(null);
-        Iterator<Relationship> flagRels = classNode.getRelationships(Direction.INCOMING, HAS_DQ_CLASS).iterator();
+        if (classNode == null) return Stream.empty();
 
-        //delete all flags
+        Node root=findOrCreateClassNode("all");
+
+        Iterator<Relationship> childRels = classNode.getRelationships(Direction.INCOMING, HAS_DQ_CLASS).iterator();
         long count = 0;
-        while (flagRels.hasNext()) {
-            Relationship flagRel = flagRels.next();
-            Node flag = flagRel.getStartNode();
-            if (flag.hasLabel(DQ_FLAG))
-                flag.getRelationships().forEach(Relationship::delete);
-                flag.delete();
-                count+=1;
+        while (childRels.hasNext()) {
+            Relationship childRel = childRels.next();
+            Node child = childRel.getStartNode();
+            if (child.hasLabel(DQ_FLAG)) {
+                //delete all flags
+                child.getRelationships().forEach(Relationship::delete);
+                child.delete();
+                count += 1;
+            } else if (child.hasLabel(DQ_CLASS)) {
+                //reattach children classes to root
+                child.createRelationshipTo(root, HAS_DQ_CLASS);
+            }
         }
+
         //delete the class
         classNode.getRelationships().forEach(Relationship::delete);
         classNode.delete();
@@ -178,7 +185,6 @@ public class DQ  {
     @Procedure(value="neo4j.dq.statistics")
     @Description("Computes statistics about DQ flags in the graph")
     public Stream<StatsResult> statistics(@Name(value="filter", defaultValue="") String filter) throws Exception {
-        //TODO : NPE here when no DQ_CLass
         if (Util.isNullOrEmpty(filter)) filter= "all";
         Node root;
         try {
@@ -187,12 +193,15 @@ public class DQ  {
             log.error("Found multiple 'DQ_Class' nodes with class='"+filter+"'.");
             throw mfe;
         }
-        if (root == null) return Stream.of(null);
+        if (root == null) return Stream.empty();
 
         String dqClass = (String)root.getProperty(classProperty);
         Map<String, Long> result = countChildrenFlags(root);
         return Stream.of(new StatsResult(dqClass, result.get("direct"), result.get("indirect")));
     }
+
+    //TODO : implement alert system
+    //TODO : implement historical tracking
 
     private Map countChildrenFlags(Node classNode) {
         long directChildren = 0 ;
