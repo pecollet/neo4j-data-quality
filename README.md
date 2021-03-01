@@ -31,7 +31,7 @@ Creates a "data quality flag" node for the given data node.
 ### Usage
 ` CALL neo4j.dq.createFlag(node, label, description)`
 ### parameters 
-* _node_ (`Node`) : the data node to flag. 
+* _node_ (`Node`|id) : the data node to flag. 
 * _label_ (String) : label for the flag node, used to categorise the type of data quality issue. Also used for the "DQ_Class" node. Optional (defaults to "Generic_Flag").
 * _description_ (string) : property of the flag node. Optional (defaults to "").
 ### output
@@ -54,8 +54,8 @@ Attach a data node to a flag with a `HAS_ATTACHMENT` relationship.
 ### Usage
 ` CALL neo4j.dq.attachToFlag(flagNode, node| list of nodes)`
 ### parameters 
-* _flag_ (`Node`) : the flag node to attach to
-* _attachmentNode_ (`Node`) : the data node to attach
+* _flag_ (`Node`|id) : the flag node to attach to
+* _attachmentNode_ (`Node`|id) : the data node to attach
 * _description_ (String) : property of the `HAS_ATTACHMENT` relationship. Optional (defaults to "").
 ### output
 * Creates a relationship `(_flag_)-[:HAS_ATTACHMENT]->(_node_)`, with `description=_description_` as property of the relationship.

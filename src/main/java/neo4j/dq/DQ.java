@@ -42,10 +42,11 @@ public class DQ  {
 
     @Procedure(value = "neo4j.dq.createFlag", mode=Mode.WRITE)
     @Description("creates a new Data Quality flag on the given node")
-    public Stream<FlagResult> createFlag(@Name("node") Node node,
+    public Stream<FlagResult> createFlag(@Name("node") Object node,
                                          @Name(value="flagLabel", defaultValue = "Generic_Flag")  String flagLabel,
                                          @Name(value="description", defaultValue = "")  String description
             ) {
+        Node n = Util.node(tx, node);
 
         Node parent = findOrCreateClassNode(flagLabel);
         if (parent == null ) return Stream.empty();
@@ -54,7 +55,7 @@ public class DQ  {
         flag.createRelationshipTo(parent, HAS_DQ_CLASS);
         flag.setProperty(descriptionProperty, description);
         flag.setProperty(createdProperty, ZonedDateTime.now());
-        node.createRelationshipTo(flag, HAS_DQ_FLAG);
+        n.createRelationshipTo(flag, HAS_DQ_FLAG);
         //to do : update counts/stats on parent. lock?
         //parent.setProperty("flagCount", (Integer)parent.getProperty("flagCount") +1);
         return Stream.of( new FlagResult(flag));
@@ -62,11 +63,13 @@ public class DQ  {
 
     @Procedure(value = "neo4j.dq.attachToFlag", mode=Mode.WRITE)
     @Description("adds an attachment node to a Data Quality flag")
-    public Stream<FlagAttachmentResult> attachToFlag(@Name("flag") Node flag,
-                                         @Name("attachmentNode")  Node attachmentNode,
+    public Stream<FlagAttachmentResult> attachToFlag(@Name("flag") Object flag,
+                                         @Name("attachmentNode")  Object attachmentNode,
                                          @Name(value="description", defaultValue = "")  String description
     ) {
-        Relationship r=flag.createRelationshipTo(attachmentNode, HAS_ATTACHMENT);
+        Node f = Util.node(tx, flag);
+        Node a = Util.node(tx, attachmentNode);
+        Relationship r=f.createRelationshipTo(a, HAS_ATTACHMENT);
         r.setProperty(descriptionProperty, description);
         return Stream.of( new FlagAttachmentResult(r));
     }
