@@ -1,6 +1,6 @@
 # neo4j.data.quality
 stored procedures to create & manage data quality flags.
-![DQ data model](docs/img/model.jpg)
+![DQ data model](docs/img/model.png)
 
 ## Installation
 * Copy the jar into Neo4j's "plugins" directory : `$NEO4J_HOME/plugins`
