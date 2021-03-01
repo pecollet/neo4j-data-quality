@@ -34,4 +34,4 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ github.token }}
       with:
-        args: '/github/workspace/target/*.jar'
+        args: '/github/workspace/target/dq*.jar'
