@@ -157,7 +157,7 @@ public class DQ  {
             throw mfe;
         }
         if (classNode == null) return Stream.of(null);
-        Iterator<Relationship> flagRels = classNode.getRelationships(Direction.INCOMING, HAS_DQ_FLAG).iterator();
+        Iterator<Relationship> flagRels = classNode.getRelationships(Direction.INCOMING, HAS_DQ_CLASS).iterator();
 
         //delete all flags
         long count = 0;
